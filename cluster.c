@@ -303,7 +303,7 @@ int load_clusters(char *filename, struct cluster_t **arr)
 	FILE *input_file = fopen(filename, "r");
 	if (input_file == NULL) {
 		arr = NULL;
-		errno = ENOFILE;
+		errno = ENOENT;
 		fprintf(stderr, "%s", strerror(errno));
 		return 0;
 	}
