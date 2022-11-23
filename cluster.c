@@ -344,11 +344,11 @@ int parseArgs(int argc, char **argv, parsedArgs_t *parsedArgs)
 	parsedArgs->clusterCount = 1;
 	switch (argc) {
 		case 3:
-			//atoi returns 0 on error
 			parsedArgs->clusterCount = (int) strtol(argv[2], NULL, 10);
 			if (errno) {
 				break;
 			}
+			// fall through
 		case 2:
 			parsedArgs->filename = argv[1];
 			break;
