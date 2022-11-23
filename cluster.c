@@ -377,6 +377,7 @@ int main(int argc, char *argv[])
 		return errno;
 	struct cluster_t *clusters;
 	int clusterCount = load_clusters(args.filename, &clusters);
+	if (errno)return errno;
 	int c1, c2;
 
 	while (clusterCount > args.clusterCount) {
