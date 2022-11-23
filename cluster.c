@@ -160,7 +160,7 @@ void merge_clusters(struct cluster_t *c1, struct cluster_t *c2)
 	assert(c2 != NULL);
 
 	// TODO
-	c1 = resize_cluster(c1, c1->size + c2->size);
+	c1 = resize_cluster(c1, c1->size + c2->size + CLUSTER_CHUNK);
 	if (c1 == NULL) {
 		fprintf(stderr, "%s\n", strerror(errno));
 		return;
