@@ -298,8 +298,8 @@ void print_cluster(struct cluster_t *c)
 
 int areIDsUnique(struct cluster_t **carr, int narr)
 {
-	for (int clusterIndex = 0; clusterIndex < narr; ++clusterIndex) {
-		for (int secondClusterIndex = clusterIndex; clusterIndex < narr; ++clusterIndex) {
+	for (int clusterIndex = 0; clusterIndex < narr - 1; clusterIndex++) {
+		for (int secondClusterIndex = clusterIndex + 1; secondClusterIndex < narr; secondClusterIndex++) {
 			if (&(*carr)[clusterIndex].obj->id == &(*carr)[secondClusterIndex].obj->id)
 				return 0;
 		}
@@ -312,7 +312,7 @@ int areIDsUnique(struct cluster_t **carr, int narr)
 #define MAX_COORDINATE 1000
 #define MIN_COORDINATE 0
 
-	int clean_clusters(struct cluster_t **carr, int narr);
+int clean_clusters(struct cluster_t **carr, int narr);
 
 /*
  Ze souboru 'filename' nacte objekty. Pro kazdy objekt vytvori shluk a ulozi
@@ -321,136 +321,136 @@ int areIDsUnique(struct cluster_t **carr, int narr)
  kam se odkazuje parametr 'arr'. Funkce vraci pocet nactenych objektu (shluku).
  V pripade nejake chyby uklada do pameti, kam se odkazuje 'arr', hodnotu NULL.
 */
-	int load_clusters(char *filename, struct cluster_t **arr)
-	{
-		assert(arr != NULL);
+int load_clusters(char *filename, struct cluster_t **arr)
+{
+	assert(arr != NULL);
 
-		FILE *input_file = fopen(filename, "r");
-		if_errno_message_return("Invalid file");
+	FILE *input_file = fopen(filename, "r");
+	if_errno_message_return("Invalid file");
 
-		int clusterCount = -1;
-		int matchedInputs;
+	int clusterCount = -1;
+	int matchedInputs;
 
-		char firstLine[MAX_FIRST_LINE_LENGTH];
-		sscanf(fgets(firstLine, MAX_FIRST_LINE_LENGTH, input_file), "count=%d\n", &clusterCount);
-		dint(clusterCount);
-		*arr = (struct cluster_t *) malloc(sizeof(struct cluster_t) * clusterCount);
-		if_errno_message("Invalid count format in input file");
+	char firstLine[MAX_FIRST_LINE_LENGTH];
+	sscanf(fgets(firstLine, MAX_FIRST_LINE_LENGTH, input_file), "count=%d\n", &clusterCount);
+	dint(clusterCount);
+	*arr = (struct cluster_t *) malloc(sizeof(struct cluster_t) * clusterCount);
+	if_errno_message("Invalid count format in input file");
 
-		if (arr != NULL) {
-			for (int objectIndex = 0; objectIndex < clusterCount; objectIndex++) {
-				init_cluster(&(*arr)[objectIndex], 1);
-				matchedInputs = fscanf(
-						input_file,
-						"%d %f %f\n",
-						&(*arr)[objectIndex].obj->id,
-						&(*arr)[objectIndex].obj->x,
-						&(*arr)[objectIndex].obj->y
-				);
-				(*arr)[objectIndex].size = 1;
+	if (arr != NULL) {
+		for (int objectIndex = 0; objectIndex < clusterCount; objectIndex++) {
+			init_cluster(&(*arr)[objectIndex], 1);
+			matchedInputs = fscanf(
+					input_file,
+					"%d %f %f\n",
+					&(*arr)[objectIndex].obj->id,
+					&(*arr)[objectIndex].obj->x,
+					&(*arr)[objectIndex].obj->y
+			);
+			(*arr)[objectIndex].size = 1;
 
-				if (matchedInputs != OBJECT_INPUT_COUNT
-				    || (*arr)[objectIndex].obj->x >= MAX_COORDINATE
-				    || (*arr)[objectIndex].obj->y >= MAX_COORDINATE
-				    || (*arr)[objectIndex].obj->x <= MIN_COORDINATE
-				    || (*arr)[objectIndex].obj->y <= MIN_COORDINATE
-				    || remainderf((*arr)[objectIndex].obj->y, 1) != 0
-				    || remainderf((*arr)[objectIndex].obj->x, 1) != 0
-				    || errno) {
-					errno = EINVAL;
-					if_errno_message("Invalid object format\\value");
-					clean_clusters(arr, clusterCount);
-					break;
-				}
-			}
-			if (!areIDsUnique(arr,clusterCount)){
-				clean_clusters(arr,clusterCount);
+			if (matchedInputs != OBJECT_INPUT_COUNT
+			    || (*arr)[objectIndex].obj->x >= MAX_COORDINATE
+			    || (*arr)[objectIndex].obj->y >= MAX_COORDINATE
+			    || (*arr)[objectIndex].obj->x <= MIN_COORDINATE
+			    || (*arr)[objectIndex].obj->y <= MIN_COORDINATE
+			    || remainderf((*arr)[objectIndex].obj->y, 1) != 0
+			    || remainderf((*arr)[objectIndex].obj->x, 1) != 0
+			    || errno) {
 				errno = EINVAL;
-				if_errno_message("Object IDs are not unique");
+				if_errno_message("Invalid object format\\value");
+				clean_clusters(arr, clusterCount);
+				break;
 			}
 		}
-		fclose(input_file);
-		return clusterCount;
-
+		if (!areIDsUnique(arr, clusterCount)) {
+			clean_clusters(arr, clusterCount);
+			errno = EINVAL;
+			if_errno_message("Object IDs are not unique");
+		}
 	}
+	fclose(input_file);
+	return clusterCount;
+
+}
 
 /*
  Tisk pole shluku. Parametr 'carr' je ukazatel na prvni polozku (shluk).
  Tiskne se prvnich 'narr' shluku.
 */
-	void print_clusters(struct cluster_t *carr, int narr)
-	{
-		printf("Clusters:\n");
-		for (int i = 0; i < narr; i++) {
-			printf("cluster %d: ", i);
-			print_cluster(&carr[i]);
-		}
+void print_clusters(struct cluster_t *carr, int narr)
+{
+	printf("Clusters:\n");
+	for (int i = 0; i < narr; i++) {
+		printf("cluster %d: ", i);
+		print_cluster(&carr[i]);
 	}
+}
 
-	typedef struct {
-		int clusterCount;
-		char *filename;
-	} parsedArgs_t;
+typedef struct {
+	int clusterCount;
+	char *filename;
+} parsedArgs_t;
 
-	int parseArgs(int argc, char **argv, parsedArgs_t *parsedArgs)
-	{
-		parsedArgs->clusterCount = 1;
-		switch (argc) {
-			case 3:
-				parsedArgs->clusterCount = (int) strtol(argv[2], NULL, 10);
-				if (parsedArgs->clusterCount <= 0)
-					errno = EINVAL;
-				if (errno) {
-					break;
-				}
-				// fall through
-			case 2:
-				parsedArgs->filename = argv[1];
+int parseArgs(int argc, char **argv, parsedArgs_t *parsedArgs)
+{
+	parsedArgs->clusterCount = 1;
+	switch (argc) {
+		case 3:
+			parsedArgs->clusterCount = (int) strtol(argv[2], NULL, 10);
+			if (parsedArgs->clusterCount <= 0)
+				errno = EINVAL;
+			if (errno) {
 				break;
-			default:
-				errno = E2BIG;
-				break;
-		}
-		if (errno)
-			fprintf(stderr, "%s\n", strerror(errno));
-		return errno;
+			}
+			// fall through
+		case 2:
+			parsedArgs->filename = argv[1];
+			break;
+		default:
+			errno = E2BIG;
+			break;
 	}
+	if (errno)
+		fprintf(stderr, "%s\n", strerror(errno));
+	return errno;
+}
 
-	int clean_clusters(struct cluster_t **carr, int narr)
-	{
-		while (narr > 0) {
-			narr = remove_cluster(*carr, narr, narr - 1);
-		}
-		if (*carr != NULL)
-			free(*carr);
-		return 0;
+int clean_clusters(struct cluster_t **carr, int narr)
+{
+	while (narr > 0) {
+		narr = remove_cluster(*carr, narr, narr - 1);
 	}
+	if (*carr != NULL)
+		free(*carr);
+	return 0;
+}
 
-	void findClusters(struct cluster_t *clusters, int *clusterCount, int expectedClusterCount)
-	{
-		int clusterToJoin1, clusterToJoin2;
+void findClusters(struct cluster_t *clusters, int *clusterCount, int expectedClusterCount)
+{
+	int clusterToJoin1, clusterToJoin2;
 
-		while (*clusterCount > expectedClusterCount) {
-			find_neighbours(clusters, *clusterCount, &clusterToJoin1, &clusterToJoin2);
-			merge_clusters(&clusters[clusterToJoin1], &clusters[clusterToJoin2]);
-			*clusterCount = remove_cluster(clusters, *clusterCount, clusterToJoin2);
-		}
+	while (*clusterCount > expectedClusterCount) {
+		find_neighbours(clusters, *clusterCount, &clusterToJoin1, &clusterToJoin2);
+		merge_clusters(&clusters[clusterToJoin1], &clusters[clusterToJoin2]);
+		*clusterCount = remove_cluster(clusters, *clusterCount, clusterToJoin2);
 	}
+}
 
-	int main(int argc, char *argv[])
-	{
-		parsedArgs_t args;
-		parseArgs(argc, argv, &args);
-		if_errno_return;
+int main(int argc, char *argv[])
+{
+	parsedArgs_t args;
+	parseArgs(argc, argv, &args);
+	if_errno_return;
 
-		struct cluster_t *clusters;
-		int clusterCount;
+	struct cluster_t *clusters;
+	int clusterCount;
 
-		clusterCount = load_clusters(args.filename, &clusters);
-		if_errno_return;
+	clusterCount = load_clusters(args.filename, &clusters);
+	if_errno_return;
 
-		findClusters(clusters, &clusterCount, args.clusterCount);
-		print_clusters(clusters, clusterCount);
-		clean_clusters(&clusters, clusterCount);
-		return 0;
-	}
+	findClusters(clusters, &clusterCount, args.clusterCount);
+	print_clusters(clusters, clusterCount);
+	clean_clusters(&clusters, clusterCount);
+	return 0;
+}
