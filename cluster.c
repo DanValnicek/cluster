@@ -363,8 +363,8 @@ int load_clusters(char *filename, struct cluster_t **arr)
 				break;
 			}
 		}
-		if (!areIDsUnique(arr, clusterCount)) {
-			clean_clusters(arr, clusterCount);
+		if (!areIDsUnique(arr, clusterCount + 1)) {
+			clean_clusters(arr, clusterCount + 1);
 			errno = EINVAL;
 			if_errno_message("Object IDs are not unique");
 		}
