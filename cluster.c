@@ -331,7 +331,7 @@ int load_clusters(char *filename, struct cluster_t **arr)
 			init_cluster(&(*arr)[objectIndex], 1);
 			matchedInputs = fscanf(
 					input_file,
-					"%d %f %f",
+					"%d %f %f\n",
 					&(*arr)[objectIndex].obj->id,
 					&(*arr)[objectIndex].obj->x,
 					&(*arr)[objectIndex].obj->y
@@ -343,6 +343,8 @@ int load_clusters(char *filename, struct cluster_t **arr)
 			    || (*arr)[objectIndex].obj->y >= MAX_COORDINATE
 			    || (*arr)[objectIndex].obj->x <= MIN_COORDINATE
 			    || (*arr)[objectIndex].obj->y <= MIN_COORDINATE
+			    || remainderf((*arr)[objectIndex].obj->y, 1) != 0
+			    || remainderf((*arr)[objectIndex].obj->x, 1) != 0
 			    || errno) {
 				errno = EINVAL;
 				if_errno_message("Invalid object format\\value");
@@ -400,8 +402,8 @@ int parseArgs(int argc, char **argv, parsedArgs_t *parsedArgs)
 
 int clean_clusters(struct cluster_t **carr, int narr)
 {
-	for (; narr > 0; --narr) {
-		remove_cluster(*carr, narr, narr - 1);
+	while ( narr > 0) {
+		narr = remove_cluster(*carr, narr, narr - 1);
 	}
 	if (*carr != NULL)
 		free(*carr);
