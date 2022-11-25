@@ -13,6 +13,10 @@
 #include <string.h>
 #include <ctype.h>
 
+#define if_errno_return if(errno)return errno;
+#define if_errno_message(errMes) if(errno){fprintf(stderr,"%s: %s",errMes,strerror(errno));}
+#define if_errno_message_return(errMes) if(errno){fprintf(stderr,"%s: %s",errMes,strerror(errno));return errno;}
+
 /*****************************************************************
  * Ladici makra. Vypnout jejich efekt lze definici makra
  * NDEBUG, napr.:
@@ -96,7 +100,9 @@ void init_cluster(struct cluster_t *c, int cap)
  */
 void clear_cluster(struct cluster_t *c)
 {
-	if (c->obj)
+	if (c == NULL)
+		return;
+	if (c->obj && c->size > 0)
 		free(c->obj);
 	c->size = c->capacity = 0;
 }
@@ -160,7 +166,7 @@ void merge_clusters(struct cluster_t *c1, struct cluster_t *c2)
 	assert(c2 != NULL);
 
 	// TODO
-	c1 = resize_cluster(c1, c1->size + c2->size + CLUSTER_CHUNK);
+	c1 = resize_cluster(c1, c1->size + c2->size);
 	if (c1 == NULL) {
 		fprintf(stderr, "%s\n", strerror(errno));
 		return;
@@ -182,6 +188,8 @@ void merge_clusters(struct cluster_t *c1, struct cluster_t *c2)
 */
 int remove_cluster(struct cluster_t *carr, int narr, int idx)
 {
+	dint(idx);
+	dint(narr);
 	assert(idx < narr);
 	assert(narr > 0);
 
@@ -222,7 +230,7 @@ float cluster_distance(struct cluster_t *c1, struct cluster_t *c2)
 	for (int firstClusterIterator = 1; firstClusterIterator < c1->size; firstClusterIterator++) {
 		for (int secondClusterIterator = 0; secondClusterIterator < c2->size; ++secondClusterIterator) {
 			currentDistance = obj_distance(&c1->obj[firstClusterIterator], &c2->obj[secondClusterIterator]);
-			dfloat(currentDistance);
+//			dfloat(currentDistance);
 			if (currentDistance < minDistance) minDistance = currentDistance;
 		}
 	}
@@ -243,10 +251,10 @@ void find_neighbours(struct cluster_t *carr, int narr, int *c1, int *c2)
 	float minClusterDistance = cluster_distance(&carr[0], &carr[1]);
 	for (int firstClusterIndex = 0; firstClusterIndex < narr - 1; firstClusterIndex++) {
 		for (int secondClusterIndex = firstClusterIndex + 1; secondClusterIndex < narr; secondClusterIndex++) {
-			dint(firstClusterIndex);
-			dint(secondClusterIndex);
+//			dint(firstClusterIndex);
+//			dint(secondClusterIndex);
 			float clusterDistance = cluster_distance(&carr[firstClusterIndex], &carr[secondClusterIndex]);
-			if (minClusterDistance > clusterDistance) {
+			if (minClusterDistance >= clusterDistance) {
 				minClusterDistance = clusterDistance;
 				*c1 = firstClusterIndex;
 				*c2 = secondClusterIndex;
@@ -288,6 +296,13 @@ void print_cluster(struct cluster_t *c)
 	putchar('\n');
 }
 
+#define MAX_FIRST_LINE_LENGTH 20
+#define OBJECT_INPUT_COUNT 3
+#define MAX_COORDINATE 1000
+#define MIN_COORDINATE 0
+
+int clean_clusters(struct cluster_t **carr, int narr);
+
 /*
  Ze souboru 'filename' nacte objekty. Pro kazdy objekt vytvori shluk a ulozi
  jej do pole shluku. Alokuje prostor pro pole vsech shluku a ukazatel na prvni
@@ -299,26 +314,46 @@ int load_clusters(char *filename, struct cluster_t **arr)
 {
 	assert(arr != NULL);
 
-	// TODO
 	FILE *input_file = fopen(filename, "r");
-	if (input_file == NULL) {
-		arr = NULL;
-		errno = ENOENT;
-		fprintf(stderr, "%s", strerror(errno));
-		return 0;
-	}
+	if_errno_message_return("Invalid file");
 
-	int clusterCount;
-	fscanf(input_file, "count=%d", &clusterCount);
+	int clusterCount = -1;
+	int matchedInputs;
+
+	char firstLine[MAX_FIRST_LINE_LENGTH];
+	sscanf(fgets(firstLine, MAX_FIRST_LINE_LENGTH, input_file), "count=%d\n", &clusterCount);
+	dint(clusterCount);
 	*arr = (struct cluster_t *) malloc(sizeof(struct cluster_t) * clusterCount);
-	for (int objectIndex = 0; objectIndex < clusterCount; objectIndex++) {
-		init_cluster(&(*arr)[objectIndex], 1);
-		fscanf(input_file, "%d%f%f", &(*arr)[objectIndex].obj->id, &(*arr)[objectIndex].obj->x,
-		       &(*arr)[objectIndex].obj->y);
-		(*arr)[objectIndex].size = 1;
+	if_errno_message("Invalid count format in input file");
+
+	if (arr != NULL) {
+		for (int objectIndex = 0; objectIndex < clusterCount; objectIndex++) {
+			init_cluster(&(*arr)[objectIndex], 1);
+			matchedInputs = fscanf(
+					input_file,
+					"%d %f %f",
+					&(*arr)[objectIndex].obj->id,
+					&(*arr)[objectIndex].obj->x,
+					&(*arr)[objectIndex].obj->y
+			);
+			(*arr)[objectIndex].size = 1;
+
+			if (matchedInputs != OBJECT_INPUT_COUNT
+			    || (*arr)[objectIndex].obj->x >= MAX_COORDINATE
+			    || (*arr)[objectIndex].obj->y >= MAX_COORDINATE
+			    || (*arr)[objectIndex].obj->x <= MIN_COORDINATE
+			    || (*arr)[objectIndex].obj->y <= MIN_COORDINATE
+			    || errno) {
+				errno = EINVAL;
+				if_errno_message("Invalid object format\\value");
+				clean_clusters(arr, clusterCount);
+				break;
+			}
+		}
 	}
 	fclose(input_file);
 	return clusterCount;
+
 }
 
 /*
@@ -345,6 +380,8 @@ int parseArgs(int argc, char **argv, parsedArgs_t *parsedArgs)
 	switch (argc) {
 		case 3:
 			parsedArgs->clusterCount = (int) strtol(argv[2], NULL, 10);
+			if (parsedArgs->clusterCount <= 0)
+				errno = EINVAL;
 			if (errno) {
 				break;
 			}
@@ -361,31 +398,41 @@ int parseArgs(int argc, char **argv, parsedArgs_t *parsedArgs)
 	return errno;
 }
 
-int clean_clusters(struct cluster_t **carr, int *narr)
+int clean_clusters(struct cluster_t **carr, int narr)
 {
-	for (; *narr > 0; --(*narr)) {
-		remove_cluster(*carr, *narr, *narr - 1);
+	for (; narr > 0; --narr) {
+		remove_cluster(*carr, narr, narr - 1);
 	}
-	free(*carr);
+	if (*carr != NULL)
+		free(*carr);
 	return 0;
+}
+
+void findClusters(struct cluster_t *clusters, int *clusterCount, int expectedClusterCount)
+{
+	int clusterToJoin1, clusterToJoin2;
+
+	while (*clusterCount > expectedClusterCount) {
+		find_neighbours(clusters, *clusterCount, &clusterToJoin1, &clusterToJoin2);
+		merge_clusters(&clusters[clusterToJoin1], &clusters[clusterToJoin2]);
+		*clusterCount = remove_cluster(clusters, *clusterCount, clusterToJoin2);
+	}
 }
 
 int main(int argc, char *argv[])
 {
 	parsedArgs_t args;
-	if (parseArgs(argc, argv, &args))
-		return errno;
-	struct cluster_t *clusters;
-	int clusterCount = load_clusters(args.filename, &clusters);
-	if (errno)return errno;
-	int c1, c2;
+	parseArgs(argc, argv, &args);
+	if_errno_return;
 
-	while (clusterCount > args.clusterCount) {
-		find_neighbours(clusters, clusterCount, &c1, &c2);
-		merge_clusters(&clusters[c1], &clusters[c2]);
-		remove_cluster(clusters, clusterCount, c2);
-		clusterCount--;
-	}
+	struct cluster_t *clusters;
+	int clusterCount;
+
+	clusterCount = load_clusters(args.filename, &clusters);
+	if_errno_return;
+
+	findClusters(clusters, &clusterCount, args.clusterCount);
 	print_clusters(clusters, clusterCount);
-	clean_clusters(&clusters, &clusterCount);
+	clean_clusters(&clusters, clusterCount);
+	return 0;
 }
