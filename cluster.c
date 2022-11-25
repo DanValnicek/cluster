@@ -300,7 +300,7 @@ int areIDsUnique(struct cluster_t **carr, int narr)
 {
 	for (int clusterIndex = 0; clusterIndex < narr - 1; clusterIndex++) {
 		for (int secondClusterIndex = clusterIndex + 1; secondClusterIndex < narr; secondClusterIndex++) {
-			if (&(*carr)[clusterIndex].obj->id == &(*carr)[secondClusterIndex].obj->id)
+			if ((*carr)[clusterIndex].obj->id == (*carr)[secondClusterIndex].obj->id)
 				return 0;
 		}
 	}
