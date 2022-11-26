@@ -336,7 +336,7 @@ int load_clusters(char *filename, struct cluster_t **arr)
 	char charAfterMatch = 0;
 	sscanf(fgets(firstLine, MAX_FIRST_LINE_LENGTH, input_file), "count=%d%c", &clusterCount, &charAfterMatch);
 	dint(clusterCount);
-	if (!iswspace(charAfterMatch)) {
+	if (!iswspace((unsigned char) charAfterMatch)) {
 		errno = EINVAL;
 		fclose(input_file);
 		if_errno_message_return("Invalid count format, invalid characters after count");
@@ -366,7 +366,7 @@ int load_clusters(char *filename, struct cluster_t **arr)
 			    || remainderf((*arr)[objectIndex].obj->y, 1) != 0
 			    || remainderf((*arr)[objectIndex].obj->x, 1) != 0
 			    || isIDUnique(*arr, objectIndex)
-			    || !iswspace(charAfterMatch)
+			    || !iswspace((unsigned char) charAfterMatch)
 			    || errno) {
 				errno = EINVAL;
 				if_errno_message("Invalid object format\\value");
