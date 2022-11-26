@@ -309,7 +309,7 @@ int isIDUnique(struct cluster_t *carr, int idx)
 }
 
 #define MAX_FIRST_LINE_LENGTH 20
-#define OBJECT_INPUT_COUNT 4
+#define OBJECT_INPUT_COUNT 3
 #define MAX_COORDINATE 1000
 #define MIN_COORDINATE 0
 
@@ -336,7 +336,7 @@ int load_clusters(char *filename, struct cluster_t **arr)
 	char charAfterMatch = 0;
 	sscanf(fgets(firstLine, MAX_FIRST_LINE_LENGTH, input_file), "count=%d%c", &clusterCount, &charAfterMatch);
 	dint(clusterCount);
-	if (!isspace((unsigned char) charAfterMatch)) {
+	if (isprint((unsigned char) charAfterMatch)) {
 		errno = EINVAL;
 		fclose(input_file);
 		if_errno_message_return("Invalid count format, invalid characters after count");
@@ -350,15 +350,14 @@ int load_clusters(char *filename, struct cluster_t **arr)
 			init_cluster(&(*arr)[objectIndex], 1);
 			matchedInputs = fscanf(
 					input_file,
-					"%d %f %f %c",
+					"%d %f %f",
 					&(*arr)[objectIndex].obj->id,
 					&(*arr)[objectIndex].obj->x,
-					&(*arr)[objectIndex].obj->y,
-					&charAfterMatch
+					&(*arr)[objectIndex].obj->y
 			);
 			(*arr)[objectIndex].size = 1;
-
-			if ((matchedInputs != OBJECT_INPUT_COUNT && objectIndex != clusterCount - 1 && OBJECT_INPUT_COUNT -1 == matchedInputs)
+			charAfterMatch = fgetc(input_file);
+			if (matchedInputs != OBJECT_INPUT_COUNT
 			    || (*arr)[objectIndex].obj->x >= MAX_COORDINATE
 			    || (*arr)[objectIndex].obj->y >= MAX_COORDINATE
 			    || (*arr)[objectIndex].obj->x <= MIN_COORDINATE
@@ -366,7 +365,7 @@ int load_clusters(char *filename, struct cluster_t **arr)
 			    || remainderf((*arr)[objectIndex].obj->y, 1) != 0
 			    || remainderf((*arr)[objectIndex].obj->x, 1) != 0
 			    || !isIDUnique(*arr, objectIndex)
-			    || !isspace((unsigned char) charAfterMatch)
+			    || isprint((unsigned char) charAfterMatch)
 			    || errno) {
 				errno = EINVAL;
 				if_errno_message("Invalid object format\\value");
