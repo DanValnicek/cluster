@@ -301,7 +301,7 @@ void print_cluster(struct cluster_t *c)
 
 int isIDUnique(struct cluster_t *carr, int idx)
 {
-	for (int clusterIndex = idx; clusterIndex >= 0; clusterIndex++) {
+	for (int clusterIndex = idx - 1; clusterIndex >= 0; clusterIndex--) {
 		if (carr[idx].obj->id == carr[clusterIndex].obj->id)
 			return 0;
 	}
@@ -365,7 +365,7 @@ int load_clusters(char *filename, struct cluster_t **arr)
 			    || (*arr)[objectIndex].obj->y <= MIN_COORDINATE
 			    || remainderf((*arr)[objectIndex].obj->y, 1) != 0
 			    || remainderf((*arr)[objectIndex].obj->x, 1) != 0
-			    || isIDUnique(*arr, objectIndex)
+			    || !isIDUnique(*arr, objectIndex)
 			    || !isspace((unsigned char) charAfterMatch)
 			    || errno) {
 				errno = EINVAL;
