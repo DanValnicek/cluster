@@ -358,7 +358,7 @@ int load_clusters(char *filename, struct cluster_t **arr)
 			);
 			(*arr)[objectIndex].size = 1;
 
-			if (matchedInputs != OBJECT_INPUT_COUNT && objectIndex != clusterCount - 1
+			if ((matchedInputs != OBJECT_INPUT_COUNT && objectIndex != clusterCount - 1)
 			    || (*arr)[objectIndex].obj->x >= MAX_COORDINATE
 			    || (*arr)[objectIndex].obj->y >= MAX_COORDINATE
 			    || (*arr)[objectIndex].obj->x <= MIN_COORDINATE
