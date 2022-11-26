@@ -350,7 +350,7 @@ int load_clusters(char *filename, struct cluster_t **arr)
 			init_cluster(&(*arr)[objectIndex], 1);
 			matchedInputs = fscanf(
 					input_file,
-					"%d %f %f%c",
+					"%d %f %f %c",
 					&(*arr)[objectIndex].obj->id,
 					&(*arr)[objectIndex].obj->x,
 					&(*arr)[objectIndex].obj->y,
@@ -358,7 +358,7 @@ int load_clusters(char *filename, struct cluster_t **arr)
 			);
 			(*arr)[objectIndex].size = 1;
 
-			if ((matchedInputs != OBJECT_INPUT_COUNT && objectIndex != clusterCount - 1)
+			if ((matchedInputs != OBJECT_INPUT_COUNT && objectIndex != clusterCount - 1 && OBJECT_INPUT_COUNT -1 == matchedInputs)
 			    || (*arr)[objectIndex].obj->x >= MAX_COORDINATE
 			    || (*arr)[objectIndex].obj->y >= MAX_COORDINATE
 			    || (*arr)[objectIndex].obj->x <= MIN_COORDINATE
