@@ -44,6 +44,9 @@
 // dfloat(identifikator_promenne)
 #define dfloat(f) printf(" - " __FILE__ ":%u: " #f " = %g\n", __LINE__, f)
 
+#define if_errno_return if(errno){fprintf(stderr," - " __FILE__ ":%u:\n", __LINE__);return errno;}
+#define if_errno_message(errMes) if(errno){fprintf(stderr," - " __FILE__ ":%u:\n", __LINE__);fprintf(stderr,"%s: %s",errMes,strerror(errno));}
+#define if_errno_message_return(errMes) if(errno){fprintf(stderr," - " __FILE__ ":%u:\n", __LINE__);fprintf(stderr,"%s: %s",errMes,strerror(errno));return errno;}
 #endif
 
 /*****************************************************************
@@ -296,19 +299,17 @@ void print_cluster(struct cluster_t *c)
 	putchar('\n');
 }
 
-int areIDsUnique(struct cluster_t **carr, int narr)
+int isIDUnique(struct cluster_t *carr, int idx)
 {
-	for (int clusterIndex = 0; clusterIndex < narr - 1; clusterIndex++) {
-		for (int secondClusterIndex = clusterIndex + 1; secondClusterIndex < narr; secondClusterIndex++) {
-			if ((*carr)[clusterIndex].obj->id == (*carr)[secondClusterIndex].obj->id)
-				return 0;
-		}
+	for (int clusterIndex = idx; clusterIndex >= 0; clusterIndex++) {
+		if (carr[idx].obj->id == carr[clusterIndex].obj->id)
+			return 0;
 	}
 	return 1;
 }
 
 #define MAX_FIRST_LINE_LENGTH 20
-#define OBJECT_INPUT_COUNT 3
+#define OBJECT_INPUT_COUNT 4
 #define MAX_COORDINATE 1000
 #define MIN_COORDINATE 0
 
@@ -332,8 +333,15 @@ int load_clusters(char *filename, struct cluster_t **arr)
 	int matchedInputs;
 
 	char firstLine[MAX_FIRST_LINE_LENGTH];
-	sscanf(fgets(firstLine, MAX_FIRST_LINE_LENGTH, input_file), "count=%d\n", &clusterCount);
+	char charAfterMatch = 0;
+	sscanf(fgets(firstLine, MAX_FIRST_LINE_LENGTH, input_file), "count=%d%c", &clusterCount, &charAfterMatch);
 	dint(clusterCount);
+	if (!iswspace(charAfterMatch)) {
+		errno = EINVAL;
+		fclose(input_file);
+		if_errno_message_return("Invalid count format, invalid characters after count");
+	}
+
 	*arr = (struct cluster_t *) malloc(sizeof(struct cluster_t) * clusterCount);
 	if_errno_message("Invalid count format in input file");
 
@@ -342,31 +350,29 @@ int load_clusters(char *filename, struct cluster_t **arr)
 			init_cluster(&(*arr)[objectIndex], 1);
 			matchedInputs = fscanf(
 					input_file,
-					"%d %f %f\n",
+					"%d %f %f%c",
 					&(*arr)[objectIndex].obj->id,
 					&(*arr)[objectIndex].obj->x,
-					&(*arr)[objectIndex].obj->y
+					&(*arr)[objectIndex].obj->y,
+					&charAfterMatch
 			);
 			(*arr)[objectIndex].size = 1;
 
-			if (matchedInputs != OBJECT_INPUT_COUNT
+			if (matchedInputs != OBJECT_INPUT_COUNT && objectIndex != clusterCount - 1
 			    || (*arr)[objectIndex].obj->x >= MAX_COORDINATE
 			    || (*arr)[objectIndex].obj->y >= MAX_COORDINATE
 			    || (*arr)[objectIndex].obj->x <= MIN_COORDINATE
 			    || (*arr)[objectIndex].obj->y <= MIN_COORDINATE
 			    || remainderf((*arr)[objectIndex].obj->y, 1) != 0
 			    || remainderf((*arr)[objectIndex].obj->x, 1) != 0
+			    || isIDUnique(*arr, objectIndex)
+			    || !iswspace(charAfterMatch)
 			    || errno) {
 				errno = EINVAL;
 				if_errno_message("Invalid object format\\value");
 				clean_clusters(arr, clusterCount);
 				break;
 			}
-		}
-		if (!areIDsUnique(arr, clusterCount)) {
-			clean_clusters(arr, clusterCount);
-			errno = EINVAL;
-			if_errno_message("Object IDs are not unique");
 		}
 	}
 	fclose(input_file);
@@ -394,26 +400,24 @@ typedef struct {
 
 int parseArgs(int argc, char **argv, parsedArgs_t *parsedArgs)
 {
+	char *formatCheck = NULL;
 	parsedArgs->clusterCount = 1;
 	switch (argc) {
 		case 3:
-			parsedArgs->clusterCount = (int) strtol(argv[2], NULL, 10);
-			if (parsedArgs->clusterCount <= 0)
+			parsedArgs->clusterCount = (int) strtol(argv[2], &formatCheck, 10);
+			if (parsedArgs->clusterCount <= 0 || !iscntrl(formatCheck[0]))
 				errno = EINVAL;
-			if (errno) {
-				break;
-			}
+			if_errno_message_return("Cluster count must be a positive integer!!!");
 			// fall through
 		case 2:
 			parsedArgs->filename = argv[1];
 			break;
 		default:
 			errno = E2BIG;
+			if_errno_message_return("Invalid argumets! Usage cluster.c <path> [N]")
 			break;
 	}
-	if (errno)
-		fprintf(stderr, "%s\n", strerror(errno));
-	return errno;
+	return 1;
 }
 
 int clean_clusters(struct cluster_t **carr, int narr)
