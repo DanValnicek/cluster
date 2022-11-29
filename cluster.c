@@ -127,6 +127,7 @@ void clear_cluster(struct cluster_t *c)
         return;
     if (c->obj && c->size > 0)
         free(c->obj);
+    c->obj = NULL;
     c->size = c->capacity = 0;
 }
 
@@ -479,8 +480,10 @@ void clean_clusters(struct cluster_t **carr, int narr)
     while (narr > 0) {
         narr = remove_cluster(*carr, narr, narr - 1);
     }
-    if (*carr != NULL)
+    if (*carr != NULL) {
         free(*carr);
+        *carr = NULL;
+    }
 }
 
 /**
