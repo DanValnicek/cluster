@@ -123,10 +123,10 @@ void init_cluster(struct cluster_t *c, int cap)
  */
 void clear_cluster(struct cluster_t *c)
 {
-    if (c == NULL)
-        return;
-    if (c->obj && c->size > 0)
-        free(c->obj);
+//    if (c == NULL)
+//        return;
+//    if (c->obj && c->size > 0)
+    free(c->obj);
     c->obj = NULL;
     c->size = c->capacity = 0;
 }
@@ -348,7 +348,7 @@ int is_unique_ID(struct cluster_t *carr, int idx)
  */
 int load_object(struct cluster_t *carr, int idx, FILE *input_file)
 {
-    int matchedInputs;
+    int matchedInputs = -1;
     init_cluster(&carr[idx], 1);
     matchedInputs = fscanf(input_file, "%d %f %f", &carr[idx].obj->id, &carr[idx].obj->x, &carr[idx].obj->y);
     carr[idx].size = 1;
@@ -411,11 +411,13 @@ int load_clusters(char *filename, struct cluster_t **arr)
     *arr = (struct cluster_t *) malloc(sizeof(struct cluster_t) * clusterCount);
     PRINT_ERRNO("Invalid count format in input file");
 
-    for (int i = 0; i < clusterCount; i++) {
-        if (load_object(*arr, i, input_file) || !is_unique_ID(*arr, i)) {
-            clean_clusters(arr, clusterCount);
-            errno = EINVAL;
-            break;
+    if (!errno) {
+        for (int i = 0; i < clusterCount; i++) {
+            if (load_object(*arr, i, input_file) || !is_unique_ID(*arr, i)) {
+                clean_clusters(arr, clusterCount);
+                errno = EINVAL;
+                break;
+            }
         }
     }
 
