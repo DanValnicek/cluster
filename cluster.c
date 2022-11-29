@@ -321,13 +321,12 @@ void print_cluster(struct cluster_t *c)
  * @param idx id of cluster to check
  * @return true when unique false otherwise
  */
-int is_unique_ID(struct cluster_t *carr, int idx)
+int not_unique_ID(struct cluster_t *carr, int idx)
 {
     for (int i = idx - 1; i >= 0; i--) {
-        if (carr[idx].obj->id == carr[i].obj->id)
-            return 0;
+        EINVAL_IF(carr[idx].obj->id == carr[i].obj->id, "Object ID is not unique!");
     }
-    return 1;
+    return 0;
 }
 
 
@@ -413,7 +412,7 @@ int load_clusters(char *filename, struct cluster_t **arr)
 
     if (!errno) {
         for (int i = 0; i < clusterCount; i++) {
-            if (load_object(*arr, i, input_file) || !is_unique_ID(*arr, i)) {
+            if (load_object(*arr, i, input_file) || not_unique_ID(*arr, i)) {
                 clean_clusters(arr, i + 1);
                 errno = EINVAL;
                 break;
