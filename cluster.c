@@ -123,9 +123,6 @@ void init_cluster(struct cluster_t *c, int cap)
  */
 void clear_cluster(struct cluster_t *c)
 {
-//    if (c == NULL)
-//        return;
-//    if (c->obj && c->size > 0)
     free(c->obj);
     c->obj = NULL;
     c->size = c->capacity = 0;
