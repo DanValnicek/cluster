@@ -414,7 +414,7 @@ int load_clusters(char *filename, struct cluster_t **arr)
     if (!errno) {
         for (int i = 0; i < clusterCount; i++) {
             if (load_object(*arr, i, input_file) || !is_unique_ID(*arr, i)) {
-                clean_clusters(arr, i);
+                clean_clusters(arr, i + 1);
                 errno = EINVAL;
                 break;
             }
