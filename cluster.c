@@ -410,8 +410,10 @@ int load_clusters(char *filename, struct cluster_t **arr)
     int clusterCount = get_cluster_count(input_file);
     PRINT_ERRNO("Invalid count format in input file");
 
-    *arr = (struct cluster_t *) malloc(sizeof(struct cluster_t) * clusterCount);
-    PRINT_ERRNO("Cluster memory allocation fail!");
+    if (!errno){
+        *arr = (struct cluster_t *) malloc(sizeof(struct cluster_t) * clusterCount);
+        PRINT_ERRNO("Cluster memory allocation fail!");
+    }
 
     if (!errno) {
         for (int i = 0; i < clusterCount; i++) {
