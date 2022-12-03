@@ -383,7 +383,7 @@ int get_cluster_count(FILE *input_file)
     fgets(firstLine, MAX_FIRST_LINE_LENGTH, input_file);
     parsedVars = sscanf(firstLine, "count=%d%c", &clusterCount, &charAfterMatch);
     dint(clusterCount);
-    if (isprint((unsigned char) charAfterMatch) || parsedVars != 1 || errno) {
+    if (isprint((unsigned char) charAfterMatch) || parsedVars != 2 || errno) {
         errno = EINVAL;
         fclose(input_file);
     }
