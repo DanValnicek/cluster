@@ -383,9 +383,9 @@ int get_cluster_count(FILE *input_file)
     fgets(firstLine, MAX_FIRST_LINE_LENGTH, input_file);
     parsedVars = sscanf(firstLine, "count=%d%c", &clusterCount, &charAfterMatch);
     dint(clusterCount);
-    if (isprint((unsigned char) charAfterMatch) || parsedVars != 2 || errno) {
-        errno = EINVAL;
-    }
+    EINVAL_IF(isprint((unsigned char) charAfterMatch), "Invalid character after 'count' in file!" ) ;
+    EINVAL_IF(parsedVars != 2 , "Invalid 'count' format in file!");
+    EINVAL_IF(clusterCount < 1, "'count' must be positive integer!");
 
     return clusterCount;
 }
@@ -407,7 +407,6 @@ int load_clusters(char *filename, struct cluster_t **arr)
     RETURN_FALSE_IF_ERRNO("Invalid file");
 
     int clusterCount = get_cluster_count(input_file);
-    PRINT_ERRNO("Invalid count format in input file");
 
     if (!errno) {
         *arr = (struct cluster_t *) malloc(sizeof(struct cluster_t) * clusterCount);
