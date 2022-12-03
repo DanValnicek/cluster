@@ -385,7 +385,6 @@ int get_cluster_count(FILE *input_file)
     dint(clusterCount);
     if (isprint((unsigned char) charAfterMatch) || parsedVars != 2 || errno) {
         errno = EINVAL;
-        fclose(input_file);
     }
 
     return clusterCount;
