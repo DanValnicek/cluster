@@ -244,10 +244,11 @@ float cluster_distance(struct cluster_t *c1, struct cluster_t *c2)
 
     float minDistance = INFINITY;
     float currentDistance;
+
     for (int i_c1 = 0; i_c1 < c1->size; i_c1++) {
         for (int i_c2 = 0; i_c2 < c2->size; i_c2++) {
             currentDistance = obj_distance(&c1->obj[i_c1], &c2->obj[i_c2]);
-//			dfloat(currentDistance);
+            dfloat(currentDistance);
             if (currentDistance < minDistance) minDistance = currentDistance;
         }
     }
@@ -267,8 +268,8 @@ void find_neighbours(struct cluster_t *carr, int narr, int *c1, int *c2)
     float minClusterDistance = cluster_distance(&carr[0], &carr[1]);
     for (int i_c1 = 0; i_c1 < narr - 1; i_c1++) {
         for (int i_c2 = i_c1 + 1; i_c2 < narr; i_c2++) {
-//			dint(i_c1);
-//			dint(i_c2);
+            dint(i_c1);
+            dint(i_c2);
             float clusterDistance = cluster_distance(&carr[i_c1], &carr[i_c2]);
             if (minClusterDistance >= clusterDistance) {
                 minClusterDistance = clusterDistance;
@@ -331,6 +332,7 @@ int not_unique_ID(struct cluster_t *carr, int idx)
  * Important constants for cluster loading and error handling
  */
 #define MAX_FIRST_LINE_LENGTH 20
+//Number of objects to load from fscanf()
 #define OBJECT_INPUT_COUNT 3
 #define MAX_COORDINATE 1000
 #define MIN_COORDINATE 0
@@ -352,12 +354,15 @@ int load_object(struct cluster_t *carr, int idx, FILE *input_file)
 
     EINVAL_IF(isprint(fgetc(input_file)), "Too many characters in object definition!");
     EINVAL_IF(matchedInputs != OBJECT_INPUT_COUNT, "Invalid object format\\value!");
+
     EINVAL_IF((carr)[idx].obj->y < MIN_COORDINATE, "Y coordinate must be in interval [0,1000]!");
     EINVAL_IF((carr)[idx].obj->x < MIN_COORDINATE, "X coordinate must be in interval [0,1000]!");
     EINVAL_IF((carr)[idx].obj->y > MAX_COORDINATE, "Y coordinate must be in interval [0,1000]!");
     EINVAL_IF((carr)[idx].obj->x > MAX_COORDINATE, "X coordinate must be in interval [0,1000]!");
+
     EINVAL_IF(remainderf((carr)[idx].obj->y, 1) != 0, "Y coordinate must be an integer!");
     EINVAL_IF(remainderf((carr)[idx].obj->x, 1) != 0, "X coordinate must be an integer!");
+
     EINVAL_IF(errno, "Object parse error");
 
     return 0;
@@ -403,9 +408,10 @@ int load_clusters(char *filename, struct cluster_t **arr)
     RETURN_FALSE_IF_ERRNO("Invalid file");
 
     int clusterCount = get_cluster_count(input_file);
+    PRINT_ERRNO("Invalid count format in input file");
 
     *arr = (struct cluster_t *) malloc(sizeof(struct cluster_t) * clusterCount);
-    PRINT_ERRNO("Invalid count format in input file");
+    PRINT_ERRNO("Cluster memory allocation fail!");
 
     if (!errno) {
         for (int i = 0; i < clusterCount; i++) {
