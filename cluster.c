@@ -21,12 +21,12 @@ return errno;          \
 /**
  * If errno is non-zero print error message from parameter to stderr with errno code
  */
-#define PRINT_ERRNO(errMes) {if(errno){fprintf(stderr,"%s: %s",errMes,strerror(errno)); \
+#define PRINT_ERRNO(errMes) {if(errno){fprintf(stderr,"%s: %s\n",errMes,strerror(errno)); \
 }}
 /**
  * If errno is non-zero print error message from parameter to stderr with errno code and returns 0
  */
-#define RETURN_FALSE_IF_ERRNO(errMes) {if(errno){fprintf(stderr,"%s: %s",errMes,strerror(errno)); \
+#define RETURN_FALSE_IF_ERRNO(errMes) {if(errno){fprintf(stderr,"%s: %s\n",errMes,strerror(errno)); \
 return 0; \
 }}
 /**
@@ -36,7 +36,7 @@ return 0; \
  */
 #define EINVAL_IF(condition, errMes) if(condition){ \
 errno = EINVAL; \
-fprintf(stderr,"%s: %s",errMes,strerror(errno)); \
+fprintf(stderr,"%s: %s\n",errMes,strerror(errno)); \
 return 1; \
 }
 
@@ -378,14 +378,14 @@ int get_cluster_count(FILE *input_file)
     int clusterCount = -1;
     char firstLine[MAX_FIRST_LINE_LENGTH];
     char charAfterMatch = 0;
+    int parsedVars = -1;
 
-    fgets(firstLine, MAX_FIRST_LINE_LENGTH, input_file),
-            sscanf(firstLine, "count=%d%c", &clusterCount, &charAfterMatch);
+    fgets(firstLine, MAX_FIRST_LINE_LENGTH, input_file);
+    parsedVars = sscanf(firstLine, "count=%d%c", &clusterCount, &charAfterMatch);
     dint(clusterCount);
-    if (isprint((unsigned char) charAfterMatch)) {
+    if (isprint((unsigned char) charAfterMatch) || parsedVars != 1 || errno) {
         errno = EINVAL;
         fclose(input_file);
-        RETURN_FALSE_IF_ERRNO("Invalid count format, invalid characters after count");
     }
 
     return clusterCount;
@@ -410,7 +410,7 @@ int load_clusters(char *filename, struct cluster_t **arr)
     int clusterCount = get_cluster_count(input_file);
     PRINT_ERRNO("Invalid count format in input file");
 
-    if (!errno){
+    if (!errno) {
         *arr = (struct cluster_t *) malloc(sizeof(struct cluster_t) * clusterCount);
         PRINT_ERRNO("Cluster memory allocation fail!");
     }
